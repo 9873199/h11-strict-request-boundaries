@@ -1,0 +1,77 @@
+[
+  {
+    "id": "check-1",
+    "argv": [
+      "D:\\hc\\userFeedback\\cache\\envs\\uf-20261111-sec-01-http-framing\\Scripts\\python.exe",
+      "-B",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "h11/tests/test_strict_request_boundaries.py",
+      "--basetemp",
+      "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\recording\\r1\\tmp-native",
+      "--disable-warnings"
+    ],
+    "exit_code": 0,
+    "finished_at_seconds": 2.03
+  },
+  {
+    "id": "check-2",
+    "argv": [
+      "D:\\hc\\userFeedback\\cache\\envs\\uf-20261111-sec-01-http-framing\\Scripts\\python.exe",
+      "-B",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\acceptance-r1\\test_acceptance.py",
+      "--tb=short",
+      "--basetemp",
+      "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\recording\\r1\\tmp-2",
+      "--disable-warnings"
+    ],
+    "exit_code": 1,
+    "finished_at_seconds": 20.59
+  },
+  {
+    "id": "check-3",
+    "argv": [
+      "D:\\hc\\userFeedback\\cache\\envs\\uf-20261111-sec-01-http-framing\\Scripts\\python.exe",
+      "-B",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\position-r1\\test_acceptance.py",
+      "--tb=short",
+      "--basetemp",
+      "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\recording\\r1\\tmp-3",
+      "--disable-warnings"
+    ],
+    "exit_code": 0,
+    "finished_at_seconds": 42.24
+  },
+  {
+    "id": "check-4",
+    "argv": [
+      "D:\\hc\\userFeedback\\cache\\envs\\uf-20261111-sec-01-http-framing\\Scripts\\python.exe",
+      "-B",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\controls-r2\\test_acceptance.py",
+      "--tb=short",
+      "--basetemp",
+      "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\recording\\r1\\tmp-4",
+      "--disable-warnings"
+    ],
+    "exit_code": 0,
+    "finished_at_seconds": 59.08
+  }
+]

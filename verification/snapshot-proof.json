@@ -1,0 +1,17 @@
+{
+  "time": "2026-11-12T04:54:18+08:00",
+  "repository": "9873199/h11-strict-request-boundaries",
+  "visibility": "public",
+  "public_unauthenticated_api_verified": true,
+  "initial_sha": "62c5068c971579d61fa1b55373390e12f25fd856",
+  "final_sha": "5222fdd2b0d809f5e3a9ca1bb9d6ef1c63e7a4c5",
+  "initial_url": "https://github.com/9873199/h11-strict-request-boundaries/commit/62c5068c971579d61fa1b55373390e12f25fd856",
+  "final_url": "https://github.com/9873199/h11-strict-request-boundaries/commit/5222fdd2b0d809f5e3a9ca1bb9d6ef1c63e7a4c5",
+  "all_frozen_blob_hashes_verified": true,
+  "initial_is_ancestor": true,
+  "model_commit_chain_preserved": true,
+  "frozen_files": 70,
+  "public_branch": "review-uid115-high-resume-20261111",
+  "automatic_submission": false,
+  "user_review_required": true
+}

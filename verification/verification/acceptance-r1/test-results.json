@@ -1,0 +1,64 @@
+{
+  "time": "2026-11-12T04:57:05+08:00",
+  "run_id": "uf-20261111-sec-01-http-framing-retry-1",
+  "checks": {
+    "regression": {
+      "tests": 149,
+      "passed": 149,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failure_cases": [],
+      "exit_code": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "pytest_terminal_summary": {
+        "passed": 149
+      },
+      "junit_raw_counts": {
+        "tests": 149,
+        "passed": 149,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "failure_cases": [],
+        "exit_code": 0
+      },
+      "count_source": "pytest terminal summary; XML kept unchanged"
+    },
+    "acceptance": {
+      "tests": 33,
+      "passed": 31,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "failure_cases": [
+        "test_valid_rfc_chunk_extension_forms[ ; label = token]",
+        "test_valid_rfc_chunk_extension_forms[\\t;\\tlabel\\t=\\t\"value\"]"
+      ],
+      "exit_code": 1,
+      "xfailed": 0,
+      "xpassed": 0,
+      "pytest_terminal_summary": {
+        "failed": 2,
+        "passed": 31
+      },
+      "junit_raw_counts": {
+        "tests": 33,
+        "passed": 31,
+        "failures": 2,
+        "errors": 0,
+        "skipped": 0,
+        "failure_cases": [
+          "test_valid_rfc_chunk_extension_forms[ ; label = token]",
+          "test_valid_rfc_chunk_extension_forms[\\t;\\tlabel\\t=\\t\"value\"]"
+        ],
+        "exit_code": 1
+      },
+      "count_source": "pytest terminal summary; XML kept unchanged"
+    }
+  },
+  "artifact_hashes_unchanged": true,
+  "score": null,
+  "feedback": "PENDING_SEMANTIC_REVIEW"
+}

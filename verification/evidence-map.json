@@ -1,0 +1,133 @@
+{
+  "time": "2026-11-12T05:02:30+08:00",
+  "uid": 115,
+  "frozen_commit": "5222fdd2b0d809f5e3a9ca1bb9d6ef1c63e7a4c5",
+  "native_trajectory_sha256": "81ac083fc94f3bbe3e7c30dcf5542c0bac472b5a3b77e3272618294941b57d2b",
+  "private_reasoning_used": false,
+  "requirements": [
+    {
+      "requirement": "Opt-in strict receiving request boundaries, raw duplicate framing checks and unified Content-Length rules",
+      "source": "h11/_connection.py:183,349,367; _readers.py:108; _headers.py:77",
+      "result": "verified for tested TECL/duplicates/comma/signs/overlong/internal whitespace and legal OWS/zeros",
+      "evidence": "acceptance-r1,controls-r2"
+    },
+    {
+      "requirement": "Reject obsolete folding, malformed chunk extensions and prohibited trailer fields",
+      "source": "_readers.py:_obsolete_line_fold,ChunkedReader,_validate_strict_trailer_headers",
+      "result": "malformed inputs rejected across every split; case-folded forbidden trailers and folded trailer rejected",
+      "evidence": "acceptance-r1,controls-r2"
+    },
+    {
+      "requirement": "Legal chunk requests remain usable",
+      "source": "_abnf.py:152; native tests:208",
+      "result": "ordinary tokens/quoted escapes/obs-text pass; two legal BWS inputs incorrectly rejected (one defect class)",
+      "evidence": "acceptance-r1:31passed2failed; format-reference-r2 RFC9112 7.1.1 + RFC9110 5.6.3"
+    },
+    {
+      "requirement": "Consistent error positions and poisoned connection; no following request event",
+      "result": "verified using fed-minus-buffered bytes, not diagnostic string alone",
+      "evidence": "position-r1:5passed; main all-split adversarial controls"
+    },
+    {
+      "requirement": "Continue, pipeline reuse, default behavior and responses",
+      "result": "positive tests pass including second-cycle strictness and response TECL/folding compatibility. Initial default BWS-before-semicolon unsupported and excluded as baseline limitation",
+      "evidence": "acceptance-r1,controls-r2; controls-r1 and initial-bws-r1 preserved"
+    },
+    {
+      "requirement": "Tests and completion reporting grounded in real outputs",
+      "result": "native and independent149-pass regression verified; final broad completion statement misses narrow legal-input compatibility",
+      "evidence": "original311-313,326; acceptance-r1, native test208"
+    }
+  ],
+  "observable_process": [
+    {
+      "lines": [
+        74
+      ],
+      "fact": "adds strict chunk regex without BWS"
+    },
+    {
+      "lines": [
+        121,
+        123
+      ],
+      "fact": "smoke-tests strict regex with token/quoted positive and malformed negative inputs"
+    },
+    {
+      "lines": [
+        149
+      ],
+      "fact": "adds native boundary tests classifying space-before-semicolon as malformed; retained in final file"
+    },
+    {
+      "lines": [
+        285,
+        286
+      ],
+      "fact": "regex trial labels equals-adjacent BWS inputs invalid and outputs False"
+    },
+    {
+      "lines": [
+        311,
+        312,
+        313
+      ],
+      "fact": "final full149-pass output and in-memory TECL consumed88/ERROR demo"
+    },
+    {
+      "lines": [
+        326
+      ],
+      "fact": "final describes completed strict mode,71 new tests and149-pass full result"
+    }
+  ],
+  "independent_suites": [
+    {
+      "path": "verification/acceptance-r1",
+      "scope": "all h11 regression",
+      "tests": 149,
+      "passed": 149,
+      "failures": 0
+    },
+    {
+      "path": "verification/acceptance-r1",
+      "scope": "independent main",
+      "tests": 33,
+      "passed": 31,
+      "failures": 2,
+      "note": "two BWS variants; single compatibility defect"
+    },
+    {
+      "path": "verification/position-r1",
+      "tests": 5,
+      "passed": 5,
+      "failures": 0
+    },
+    {
+      "path": "verification/controls-r2",
+      "tests": 9,
+      "passed": 9,
+      "failures": 0
+    },
+    {
+      "path": "verification/controls-r1",
+      "tests": 9,
+      "passed": 8,
+      "failures": 1,
+      "note": "default before-semicolon BWS failure reproduced unchanged on initial source; excluded from model penalty"
+    },
+    {
+      "path": "verification/initial-bws-r1",
+      "tests": 1,
+      "passed": 0,
+      "failures": 1,
+      "note": "baseline attribution only"
+    }
+  ],
+  "excluded_engineering_attempts": [],
+  "unverified": [
+    "No real proxy deployed; task explicitly requested memory-only protocol safety regression.",
+    "All-split checks cover listed fixtures rather than every possible input; no general proof of absence of request smuggling.",
+    "Initial default reader already rejects BWS before semicolon. This baseline limitation is not described as a new default-mode regression."
+  ]
+}

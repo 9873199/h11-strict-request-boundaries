@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="33" time="0.623" timestamp="2026-11-12T04:57:04.605234+08:00" hostname="DESKTOP-BPAMAV8"><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[te-cl]" time="0.011" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[duplicate-cl]" time="0.010" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[conflicting-cl]" time="0.015" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[comma-cl]" time="0.005" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[folded]" time="0.006" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[colon-space]" time="0.005" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[signed-plus]" time="0.006" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[signed-minus]" time="0.006" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[inner-space]" time="0.013" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[decimal]" time="0.005" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[hex]" time="0.006" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[overlong]" time="0.013" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[extension-double-equals]" time="0.018" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[extension-no-name]" time="0.013" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[extension-unclosed-quote]" time="0.014" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[extension-empty]" time="0.013" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[trailer-Host]" time="0.028" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[trailer-Content-Length]" time="0.019" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[trailer-Transfer-Encoding]" time="0.021" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_all_cut_positions_reject_and_poison[trailer-hOsT]" time="0.023" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_legal_chunked_with_extensions_and_trailer[1]" time="0.001" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_legal_chunked_with_extensions_and_trailer[2]" time="0.001" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_legal_chunked_with_extensions_and_trailer[7]" time="0.001" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_legal_chunked_with_extensions_and_trailer[64]" time="0.001" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_legal_chunked_with_extensions_and_trailer[10000]" time="0.001" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_two_pipelined_requests" time="0.001" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_continue_and_body" time="0.000" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_default_te_cl_compatibility" time="0.000" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_valid_rfc_chunk_extension_forms[;label=&quot;a\&quot;b&quot;]" time="0.001" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_valid_rfc_chunk_extension_forms[;label=&quot;a\\b&quot;]" time="0.001" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_valid_rfc_chunk_extension_forms[;label=&quot;\x80&quot;]" time="0.001" /><testcase classname="verification.acceptance-r1.test_acceptance" name="test_valid_rfc_chunk_extension_forms[ ; label = token]" time="0.001"><failure message="h11._util.RemoteProtocolError: malformed chunk header in strict request: bytearray(b'1 ; label = token\r\n')">extension = b' ; label = token'
+
+    @pytest.mark.parametrize('extension',[
+     b';label="a\\\"b"',
+     b';label="a\\\\b"',
+     b';label="\x80"',
+     b' ; label = token',
+     b'\t;\tlabel\t=\t"value"',
+    ])
+    def test_valid_rfc_chunk_extension_forms(extension):
+     wire=PREFIX+b'Transfer-Encoding: chunked\r\n\r\n1'+extension+b'\r\nx\r\n0\r\n\r\n'
+     c=h11.Connection(h11.SERVER,strict_request_boundaries=True);events=[]
+     for value in wire:
+&gt;     c.receive_data(bytes([value]));events.extend(drain(c)[0])
+                                                   ^^^^^^^^
+
+..\verification\acceptance-r1\test_acceptance.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\verification\acceptance-r1\test_acceptance.py:48: in drain
+    e=c.next_event()
+      ^^^^^^^^^^^^^^
+h11\_connection.py:534: in next_event
+    exc._reraise_as_remote_protocol_error()
+h11\_util.py:77: in _reraise_as_remote_protocol_error
+    raise self
+h11\_connection.py:516: in next_event
+    event = self._extract_next_receive_event()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+h11\_connection.py:458: in _extract_next_receive_event
+    event = self._reader(self._receive_buffer)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+h11\_readers.py:273: in __call__
+    matches = validate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+regex = re.compile(b'(?P&lt;chunk_size&gt;([0-9A-Fa-f]){1,20})(?P&lt;chunk_ext&gt;(?:;[-!#$%&amp;\'*+.^_`|~0-9a-zA-Z]+(?:=(?:[-!#$%&amp;\'*+.^_`|~0-9a-zA-Z]+|"(?:[\\t \\x21\\x23-\\x5b\\x5d-\\x7e\\x80-\\xff]|\\\\(?:[\\t \\x21-\\x7e\\x80-\\x)
+data = bytearray(b'1 ; label = token\r\n')
+msg = "malformed chunk header in strict request: bytearray(b'1 ; label = token\\r\\n')"
+format_args = (bytearray(b'1 ; label = token\r\n'),)
+
+    def validate(
+        regex: Pattern[bytes], data: bytes, msg: str = "malformed data", *format_args: Any
+    ) -&gt; Dict[str, bytes]:
+        match = regex.fullmatch(data)
+        if not match:
+            if format_args:
+                msg = msg.format(*format_args)
+&gt;           raise LocalProtocolError(msg)
+E           h11._util.RemoteProtocolError: malformed chunk header in strict request: bytearray(b'1 ; label = token\r\n')
+
+h11\_util.py:91: RemoteProtocolError</failure></testcase><testcase classname="verification.acceptance-r1.test_acceptance" name="test_valid_rfc_chunk_extension_forms[\t;\tlabel\t=\t&quot;value&quot;]" time="0.001"><failure message="h11._util.RemoteProtocolError: malformed chunk header in strict request: bytearray(b'1\t;\tlabel\t=\t&quot;value&quot;\r\n')">extension = b'\t;\tlabel\t=\t"value"'
+
+    @pytest.mark.parametrize('extension',[
+     b';label="a\\\"b"',
+     b';label="a\\\\b"',
+     b';label="\x80"',
+     b' ; label = token',
+     b'\t;\tlabel\t=\t"value"',
+    ])
+    def test_valid_rfc_chunk_extension_forms(extension):
+     wire=PREFIX+b'Transfer-Encoding: chunked\r\n\r\n1'+extension+b'\r\nx\r\n0\r\n\r\n'
+     c=h11.Connection(h11.SERVER,strict_request_boundaries=True);events=[]
+     for value in wire:
+&gt;     c.receive_data(bytes([value]));events.extend(drain(c)[0])
+                                                   ^^^^^^^^
+
+..\verification\acceptance-r1\test_acceptance.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\verification\acceptance-r1\test_acceptance.py:48: in drain
+    e=c.next_event()
+      ^^^^^^^^^^^^^^
+h11\_connection.py:534: in next_event
+    exc._reraise_as_remote_protocol_error()
+h11\_util.py:77: in _reraise_as_remote_protocol_error
+    raise self
+h11\_connection.py:516: in next_event
+    event = self._extract_next_receive_event()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+h11\_connection.py:458: in _extract_next_receive_event
+    event = self._reader(self._receive_buffer)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+h11\_readers.py:273: in __call__
+    matches = validate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+regex = re.compile(b'(?P&lt;chunk_size&gt;([0-9A-Fa-f]){1,20})(?P&lt;chunk_ext&gt;(?:;[-!#$%&amp;\'*+.^_`|~0-9a-zA-Z]+(?:=(?:[-!#$%&amp;\'*+.^_`|~0-9a-zA-Z]+|"(?:[\\t \\x21\\x23-\\x5b\\x5d-\\x7e\\x80-\\xff]|\\\\(?:[\\t \\x21-\\x7e\\x80-\\x)
+data = bytearray(b'1\t;\tlabel\t=\t"value"\r\n')
+msg = 'malformed chunk header in strict request: bytearray(b\'1\\t;\\tlabel\\t=\\t"value"\\r\\n\')'
+format_args = (bytearray(b'1\t;\tlabel\t=\t"value"\r\n'),)
+
+    def validate(
+        regex: Pattern[bytes], data: bytes, msg: str = "malformed data", *format_args: Any
+    ) -&gt; Dict[str, bytes]:
+        match = regex.fullmatch(data)
+        if not match:
+            if format_args:
+                msg = msg.format(*format_args)
+&gt;           raise LocalProtocolError(msg)
+E           h11._util.RemoteProtocolError: malformed chunk header in strict request: bytearray(b'1\t;\tlabel\t=\t"value"\r\n')
+
+h11\_util.py:91: RemoteProtocolError</failure></testcase></testsuite></testsuites>

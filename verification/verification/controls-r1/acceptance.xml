@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="9" time="0.319" timestamp="2026-11-12T04:58:12.009774+08:00" hostname="DESKTOP-BPAMAV8"><testcase classname="verification.controls-r1.test_acceptance" name="test_length_ows_and_leading_zero_consistent[0]" time="0.001" /><testcase classname="verification.controls-r1.test_acceptance" name="test_length_ows_and_leading_zero_consistent[000]" time="0.001" /><testcase classname="verification.controls-r1.test_acceptance" name="test_length_ows_and_leading_zero_consistent[\t0 ]" time="0.001" /><testcase classname="verification.controls-r1.test_acceptance" name="test_length_ows_and_leading_zero_consistent[ 0\t]" time="0.001" /><testcase classname="verification.controls-r1.test_acceptance" name="test_strict_stays_enabled_on_second_cycle" time="0.001" /><testcase classname="verification.controls-r1.test_acceptance" name="test_response_parsing_compatibility[False]" time="0.001" /><testcase classname="verification.controls-r1.test_acceptance" name="test_response_parsing_compatibility[True]" time="0.001" /><testcase classname="verification.controls-r1.test_acceptance" name="test_default_bws_chunk_extension_still_accepted" time="0.001"><failure message="h11._util.RemoteProtocolError: illegal chunk header: bytearray(b'1 ; label = token\r\n')">def test_default_bws_chunk_extension_still_accepted():
+        c=h11.Connection(h11.SERVER)
+        c.receive_data(b'POST / HTTP/1.1\r\nHost: local\r\nTransfer-Encoding: chunked\r\n\r\n1 ; label = token\r\nx\r\n0\r\n\r\n')
+&gt;       events=drain(c);assert b''.join(e.data for e in events if isinstance(e,h11.Data))==b'x'
+               ^^^^^^^^
+
+..\verification\controls-r1\test_acceptance.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\verification\controls-r1\test_acceptance.py:6: in drain
+    e=c.next_event()
+      ^^^^^^^^^^^^^^
+h11\_connection.py:534: in next_event
+    exc._reraise_as_remote_protocol_error()
+h11\_util.py:77: in _reraise_as_remote_protocol_error
+    raise self
+h11\_connection.py:516: in next_event
+    event = self._extract_next_receive_event()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+h11\_connection.py:458: in _extract_next_receive_event
+    event = self._reader(self._receive_buffer)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+h11\_readers.py:280: in __call__
+    matches = validate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+regex = re.compile(b'(?P&lt;chunk_size&gt;([0-9A-Fa-f]){1,20})(?P&lt;chunk_ext&gt;;.*)?[ \\t]*\\r\\n')
+data = bytearray(b'1 ; label = token\r\n')
+msg = "illegal chunk header: bytearray(b'1 ; label = token\\r\\n')"
+format_args = (bytearray(b'1 ; label = token\r\n'),)
+
+    def validate(
+        regex: Pattern[bytes], data: bytes, msg: str = "malformed data", *format_args: Any
+    ) -&gt; Dict[str, bytes]:
+        match = regex.fullmatch(data)
+        if not match:
+            if format_args:
+                msg = msg.format(*format_args)
+&gt;           raise LocalProtocolError(msg)
+E           h11._util.RemoteProtocolError: illegal chunk header: bytearray(b'1 ; label = token\r\n')
+
+h11\_util.py:91: RemoteProtocolError</failure></testcase><testcase classname="verification.controls-r1.test_acceptance" name="test_strict_applies_to_trailer_case_and_fold" time="0.001" /></testsuite></testsuites>

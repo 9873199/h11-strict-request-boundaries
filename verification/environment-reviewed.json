@@ -1,0 +1,24 @@
+{
+  "time": "2026-11-12T05:02:30+08:00",
+  "container_used": false,
+  "python": "D:\\hc\\userFeedback\\cache\\envs\\uf-20261111-sec-01-http-framing\\Scripts\\python.exe",
+  "dependencies": {
+    "python": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "module_paths": {
+      "h11": "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\frozen-artifact\\h11\\__init__.py",
+      "h11._readers": "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\frozen-artifact\\h11\\_readers.py",
+      "h11._connection": "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\frozen-artifact\\h11\\_connection.py"
+    },
+    "packages": {
+      "h11": "0.16.0+dev",
+      "pytest": "9.2.0"
+    }
+  },
+  "external_dependencies": [
+    "Native Windows Python, pure Python h11 and pytest; no container",
+    "Protocol tests operate on in-memory bytes; no real proxy or network service dependency",
+    "Public RFC texts are verification references only; runtime does not fetch them"
+  ],
+  "module_import_verified": true
+}

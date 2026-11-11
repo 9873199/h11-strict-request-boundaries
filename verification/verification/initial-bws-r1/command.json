@@ -1,0 +1,25 @@
+{
+  "argv": [
+    "D:\\hc\\userFeedback\\cache\\envs\\uf-20261111-sec-01-http-framing\\Scripts\\python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "-q",
+    "-s",
+    "-p",
+    "no:cacheprovider",
+    "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\controls-r1\\test_acceptance.py",
+    "-k",
+    "test_default_bws_chunk_extension_still_accepted",
+    "--basetemp",
+    "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\initial-bws-r1\\tmp",
+    "--junitxml",
+    "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\initial-bws-r1\\baseline.xml"
+  ],
+  "cwd": "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\initial-bws-r1\\source",
+  "PYTHONPATH": "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\initial-bws-r1\\source",
+  "exit_code": 1,
+  "initial_sha": "62c5068c971579d61fa1b55373390e12f25fd856",
+  "source_archive_sha256": "4f82bb1fe9287c3592920bdc846d7f24fe76436035062f5ee37ffcc06fe443a0",
+  "purpose": "Establish that the extra default-mode BWS-before-semicolon assertion is already unsupported in the original baseline; exclude this one failure from model penalty."
+}

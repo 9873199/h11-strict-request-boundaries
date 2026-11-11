@@ -1,0 +1,22 @@
+{
+  "argv": [
+    "D:\\hc\\userFeedback\\cache\\envs\\uf-20261111-sec-01-http-framing\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\frozen-artifact\\h11\\tests",
+    "--basetemp",
+    "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\acceptance-r1\\tmp-regression",
+    "--junitxml",
+    "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\acceptance-r1\\regression.xml",
+    "--disable-warnings"
+  ],
+  "cwd": "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\frozen-artifact",
+  "PYTHONPATH": "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\frozen-artifact;D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\frozen-artifact\\src",
+  "python": "D:\\hc\\userFeedback\\cache\\envs\\uf-20261111-sec-01-http-framing\\Scripts\\python.exe",
+  "exit_code": 0,
+  "seconds": 3.57,
+  "log": "D:\\hc\\userFeedback\\cache\\execution-security-high-resume-20261111\\evaluation\\uf-20261111-sec-01-http-framing-retry-1\\verification\\acceptance-r1\\regression.log"
+}

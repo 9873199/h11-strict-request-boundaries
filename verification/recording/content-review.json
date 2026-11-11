@@ -1,0 +1,23 @@
+{
+  "time": "2026-11-12T05:02:22+08:00",
+  "duration_seconds": 75.0,
+  "width": 1280,
+  "height": 720,
+  "continuous": true,
+  "full_stream_decoded": true,
+  "black_intervals": [],
+  "reviewed_frames_seconds": [
+    3,
+    35,
+    70
+  ],
+  "content_reviewed": true,
+  "shown_scenarios": [
+    "71 native strict-boundary tests",
+    "Independent33:31passed2legal-BWS failures",
+    "Exact consumed error positions5passed",
+    "Second cycle/response/length controls9passed"
+  ],
+  "helper_is_separate_verification_tool": true,
+  "video_sha256": "3f1f2bcb3c1150dd461d5a3ab6559ef41b5366bbbf5bd9acdd452c6385ebbec0"
+}

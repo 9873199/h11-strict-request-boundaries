@@ -1,0 +1,112 @@
+...............................FF
+================================== FAILURES ===================================
+___________ test_valid_rfc_chunk_extension_forms[ ; label = token] ____________
+
+extension = b' ; label = token'
+
+    @pytest.mark.parametrize('extension',[
+     b';label="a\\\"b"',
+     b';label="a\\\\b"',
+     b';label="\x80"',
+     b' ; label = token',
+     b'\t;\tlabel\t=\t"value"',
+    ])
+    def test_valid_rfc_chunk_extension_forms(extension):
+     wire=PREFIX+b'Transfer-Encoding: chunked\r\n\r\n1'+extension+b'\r\nx\r\n0\r\n\r\n'
+     c=h11.Connection(h11.SERVER,strict_request_boundaries=True);events=[]
+     for value in wire:
+>     c.receive_data(bytes([value]));events.extend(drain(c)[0])
+                                                   ^^^^^^^^
+
+..\verification\acceptance-r1\test_acceptance.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\verification\acceptance-r1\test_acceptance.py:48: in drain
+    e=c.next_event()
+      ^^^^^^^^^^^^^^
+h11\_connection.py:534: in next_event
+    exc._reraise_as_remote_protocol_error()
+h11\_util.py:77: in _reraise_as_remote_protocol_error
+    raise self
+h11\_connection.py:516: in next_event
+    event = self._extract_next_receive_event()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+h11\_connection.py:458: in _extract_next_receive_event
+    event = self._reader(self._receive_buffer)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+h11\_readers.py:273: in __call__
+    matches = validate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+regex = re.compile(b'(?P<chunk_size>([0-9A-Fa-f]){1,20})(?P<chunk_ext>(?:;[-!#$%&\'*+.^_`|~0-9a-zA-Z]+(?:=(?:[-!#$%&\'*+.^_`|~0-9a-zA-Z]+|"(?:[\\t \\x21\\x23-\\x5b\\x5d-\\x7e\\x80-\\xff]|\\\\(?:[\\t \\x21-\\x7e\\x80-\\x)
+data = bytearray(b'1 ; label = token\r\n')
+msg = "malformed chunk header in strict request: bytearray(b'1 ; label = token\\r\\n')"
+format_args = (bytearray(b'1 ; label = token\r\n'),)
+
+    def validate(
+        regex: Pattern[bytes], data: bytes, msg: str = "malformed data", *format_args: Any
+    ) -> Dict[str, bytes]:
+        match = regex.fullmatch(data)
+        if not match:
+            if format_args:
+                msg = msg.format(*format_args)
+>           raise LocalProtocolError(msg)
+E           h11._util.RemoteProtocolError: malformed chunk header in strict request: bytearray(b'1 ; label = token\r\n')
+
+h11\_util.py:91: RemoteProtocolError
+________ test_valid_rfc_chunk_extension_forms[\t;\tlabel\t=\t"value"] _________
+
+extension = b'\t;\tlabel\t=\t"value"'
+
+    @pytest.mark.parametrize('extension',[
+     b';label="a\\\"b"',
+     b';label="a\\\\b"',
+     b';label="\x80"',
+     b' ; label = token',
+     b'\t;\tlabel\t=\t"value"',
+    ])
+    def test_valid_rfc_chunk_extension_forms(extension):
+     wire=PREFIX+b'Transfer-Encoding: chunked\r\n\r\n1'+extension+b'\r\nx\r\n0\r\n\r\n'
+     c=h11.Connection(h11.SERVER,strict_request_boundaries=True);events=[]
+     for value in wire:
+>     c.receive_data(bytes([value]));events.extend(drain(c)[0])
+                                                   ^^^^^^^^
+
+..\verification\acceptance-r1\test_acceptance.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\verification\acceptance-r1\test_acceptance.py:48: in drain
+    e=c.next_event()
+      ^^^^^^^^^^^^^^
+h11\_connection.py:534: in next_event
+    exc._reraise_as_remote_protocol_error()
+h11\_util.py:77: in _reraise_as_remote_protocol_error
+    raise self
+h11\_connection.py:516: in next_event
+    event = self._extract_next_receive_event()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+h11\_connection.py:458: in _extract_next_receive_event
+    event = self._reader(self._receive_buffer)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+h11\_readers.py:273: in __call__
+    matches = validate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+regex = re.compile(b'(?P<chunk_size>([0-9A-Fa-f]){1,20})(?P<chunk_ext>(?:;[-!#$%&\'*+.^_`|~0-9a-zA-Z]+(?:=(?:[-!#$%&\'*+.^_`|~0-9a-zA-Z]+|"(?:[\\t \\x21\\x23-\\x5b\\x5d-\\x7e\\x80-\\xff]|\\\\(?:[\\t \\x21-\\x7e\\x80-\\x)
+data = bytearray(b'1\t;\tlabel\t=\t"value"\r\n')
+msg = 'malformed chunk header in strict request: bytearray(b\'1\\t;\\tlabel\\t=\\t"value"\\r\\n\')'
+format_args = (bytearray(b'1\t;\tlabel\t=\t"value"\r\n'),)
+
+    def validate(
+        regex: Pattern[bytes], data: bytes, msg: str = "malformed data", *format_args: Any
+    ) -> Dict[str, bytes]:
+        match = regex.fullmatch(data)
+        if not match:
+            if format_args:
+                msg = msg.format(*format_args)
+>           raise LocalProtocolError(msg)
+E           h11._util.RemoteProtocolError: malformed chunk header in strict request: bytearray(b'1\t;\tlabel\t=\t"value"\r\n')
+
+h11\_util.py:91: RemoteProtocolError
+=========================== short test summary info ===========================
+FAILED ..\verification\acceptance-r1\test_acceptance.py::test_valid_rfc_chunk_extension_forms[ ; label = token]
+FAILED ..\verification\acceptance-r1\test_acceptance.py::test_valid_rfc_chunk_extension_forms[\t;\tlabel\t=\t"value"]
+2 failed, 31 passed in 0.67s

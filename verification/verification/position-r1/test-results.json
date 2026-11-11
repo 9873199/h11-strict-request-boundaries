@@ -1,0 +1,33 @@
+{
+  "time": "2026-11-12T04:57:19+08:00",
+  "run_id": "uf-20261111-sec-01-http-framing-retry-1",
+  "checks": {
+    "acceptance": {
+      "tests": 5,
+      "passed": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failure_cases": [],
+      "exit_code": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "pytest_terminal_summary": {
+        "passed": 5
+      },
+      "junit_raw_counts": {
+        "tests": 5,
+        "passed": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "failure_cases": [],
+        "exit_code": 0
+      },
+      "count_source": "pytest terminal summary; XML kept unchanged"
+    }
+  },
+  "artifact_hashes_unchanged": true,
+  "score": null,
+  "feedback": "PENDING_SEMANTIC_REVIEW"
+}
