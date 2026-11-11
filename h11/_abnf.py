@@ -130,3 +130,10 @@ chunk_header = (
     )  # Even though the specification does not allow for extra whitespaces,
     # we are lenient with trailing whitespaces because some servers on the wild use it.
 )
+
+# Strict variant used when strict_request_boundaries is enabled: the chunk
+# line is exactly a hex size followed by CRLF. No chunk extensions (we don't
+# understand them anyway, so accepting them would only create parser
+# divergence with stricter intermediaries) and no stray optional whitespace.
+# https://www.rfc-editor.org/rfc/rfc9112#section-7.1.1
+strict_chunk_header = r"(?P<chunk_size>{chunk_size})" r"\r\n".format(**globals())

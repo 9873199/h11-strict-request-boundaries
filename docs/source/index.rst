@@ -72,4 +72,5 @@ Contents
    api.rst
    examples.rst
    supported-http.rst
+   strict-request-boundaries.rst
    changes.rst

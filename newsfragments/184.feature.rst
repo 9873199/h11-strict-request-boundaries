@@ -1,0 +1,10 @@
+Added an opt-in ``strict_request_boundaries`` mode for server-side
+:class:`Connection` objects, implementing the strict framing rules of
+RFC 9112. When enabled, ambiguous or malformed inbound requests --
+including requests with both ``Transfer-Encoding`` and
+``Content-Length``, duplicate ``Content-Length`` fields, obsolete
+header line folding, malformed chunk lines, and framing fields hidden
+in chunked trailers -- are rejected with
+:class:`RemoteProtocolError` and put the connection into the
+:data:`ERROR` state, so pipelined data following a bad request cannot
+be parsed as a new request. The default parsing behavior is unchanged.

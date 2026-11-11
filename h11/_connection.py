@@ -23,7 +23,7 @@ from ._events import (
     Response,
 )
 from ._headers import get_comma_header, has_expect_100_continue, set_comma_header
-from ._readers import READERS, ReadersType
+from ._readers import READERS, ReadersType, STRICT_READERS
 from ._receivebuffer import ReceiveBuffer
 from ._state import (
     _SWITCH_CONNECT,
@@ -91,7 +91,9 @@ def _keep_alive(event: Union[Request, Response]) -> bool:
 
 
 def _body_framing(
-    request_method: bytes, event: Union[Request, Response]
+    request_method: bytes,
+    event: Union[Request, Response],
+    strict_request_boundaries: bool = False,
 ) -> Tuple[str, Union[Tuple[()], Tuple[int]]]:
     # Called when we enter SEND_BODY to figure out framing information for
     # this body.
@@ -123,14 +125,27 @@ def _body_framing(
         # they can't get into this function in the first place.
         assert event.status_code >= 200
 
-    # Step 2: check for Transfer-Encoding (T-E beats C-L):
     transfer_encodings = get_comma_header(event.headers, b"transfer-encoding")
+    content_lengths = get_comma_header(event.headers, b"content-length")
+
+    # Step 2: check for Transfer-Encoding (T-E beats C-L):
     if transfer_encodings:
+        # RFC 9112 section 6.3: when both framing mechanisms are present the
+        # message is ambiguous -- different intermediaries may pick different
+        # message boundaries, which is the canonical request-smuggling shape.
+        # A strict inbound gateway rejects instead of guessing. This only
+        # applies to requests we parse from the wire; for responses we send
+        # ourselves the historical "T-E wins" rule is preserved.
+        if strict_request_boundaries and type(event) is Request and content_lengths:
+            raise LocalProtocolError(
+                "request has both Transfer-Encoding and Content-Length, "
+                "which is ambiguous and not allowed with strict request "
+                "boundaries"
+            )
         assert transfer_encodings == [b"chunked"]
         return ("chunked", ())
 
     # Step 3: check for Content-Length
-    content_lengths = get_comma_header(event.headers, b"content-length")
     if content_lengths:
         return ("content-length", (int(content_lengths[0]),))
 
@@ -162,12 +177,27 @@ class Connection:
             exceeded, then :meth:`next_event` will raise
             :exc:`RemoteProtocolError`.
 
+        strict_request_boundaries (bool):
+            When True (and this is a server-side connection), enforce the
+            strict request boundary rules from RFC 9112 on inbound requests:
+            requests carrying both Transfer-Encoding and Content-Length are
+            rejected as ambiguous, duplicate Content-Length fields and
+            obsolete header line folding are rejected, Content-Length values
+            must be a single bare run of decimal digits, chunk lines may not
+            carry extensions or stray whitespace, and chunked trailers may
+            not contain Host, Content-Length or Transfer-Encoding fields.
+            Any such violation raises :exc:`RemoteProtocolError` and moves
+            the connection to :data:`ERROR`, so pipelined data following a
+            bad request can never be delivered as a new request. Defaults to
+            False, which preserves the historical lenient behavior.
+
     """
 
     def __init__(
         self,
         our_role: Type[Sentinel],
         max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
+        strict_request_boundaries: bool = False,
     ) -> None:
         self._max_incomplete_event_size = max_incomplete_event_size
         # State and role tracking
@@ -175,6 +205,14 @@ class Connection:
             raise ValueError(f"expected CLIENT or SERVER, not {our_role!r}")
         self.our_role = our_role
         self.their_role: Type[Sentinel]
+        # The strict rules only make sense for data received from a remote
+        # client; a client connection parsing responses keeps the lenient
+        # readers regardless of this flag.
+        self.strict_request_boundaries = bool(strict_request_boundaries)
+        if our_role is SERVER and self.strict_request_boundaries:
+            reader_table = STRICT_READERS
+        else:
+            reader_table = READERS
         if our_role is CLIENT:
             self.their_role = SERVER
         else:
@@ -183,8 +221,9 @@ class Connection:
 
         # Callables for converting data->events or vice-versa given the
         # current state
+        self._reader_table = reader_table
         self._writer = self._get_io_object(self.our_role, None, WRITERS)
-        self._reader = self._get_io_object(self.their_role, None, READERS)
+        self._reader = self._get_io_object(self.their_role, None, reader_table)
 
         # Holds any unprocessed received data
         self._receive_buffer = ReceiveBuffer()
@@ -328,8 +367,15 @@ class Connection:
         if state is SEND_BODY:
             # Special case: the io_dict has a dict of reader/writer factories
             # that depend on the request/response framing.
+            #
+            # The strict boundary rules apply to data received from the peer,
+            # never to events we serialize ourselves, so the framing check is
+            # only active when we're building a reader for their role.
+            apply_strict = self.strict_request_boundaries and role is self.their_role
             framing_type, args = _body_framing(
-                cast(bytes, self._request_method), cast(Union[Request, Response], event)
+                cast(bytes, self._request_method),
+                cast(Union[Request, Response], event),
+                strict_request_boundaries=apply_strict,
             )
             return io_dict[SEND_BODY][framing_type](*args)  # type: ignore[index]
         else:
@@ -348,7 +394,9 @@ class Connection:
         if self.our_state != old_states[self.our_role]:
             self._writer = self._get_io_object(self.our_role, event, WRITERS)
         if self.their_state != old_states[self.their_role]:
-            self._reader = self._get_io_object(self.their_role, event, READERS)
+            self._reader = self._get_io_object(
+                self.their_role, event, self._reader_table
+            )
 
     @property
     def trailing_data(self) -> Tuple[bytes, bool]:

@@ -1,5 +1,15 @@
 import re
-from typing import AnyStr, cast, List, overload, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import (
+    AnyStr,
+    cast,
+    Iterable,
+    List,
+    overload,
+    Sequence,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
 from ._abnf import field_name, field_value
 from ._util import bytesify, LocalProtocolError, validate
@@ -70,8 +80,22 @@ CONTENT_LENGTH_MAX_DIGITS = 20  # allow up to 1 billion TB - 1
 # Maybe a dict-of-lists would be better?
 
 _content_length_re = re.compile(rb"[0-9]+")
+# The header_field ABNF strips optional whitespace around the value before we
+# see it, so strict mode also checks the untouched wire line: after the colon
+# only the grammar-mandated leading OWS is tolerated, and the run of digits
+# must run straight to the end of the line. Trailing or embedded whitespace
+# would let different parsers extract different lengths.
+_strict_content_length_line_re = re.compile(rb"(?i:content-length):[ \t]*[0-9]+")
 _field_name_re = re.compile(field_name.encode("ascii"))
 _field_value_re = re.compile(field_value.encode("ascii"))
+
+
+# Header fields that RFC 9112 section 7.1.2 forbids in chunked trailers,
+# because treating them as trailer fields can bypass security filters that
+# only inspect the header section.
+_TRAILER_FORBIDDEN_FIELDS = frozenset(
+    [b"host", b"content-length", b"transfer-encoding"]
+)
 
 
 class Headers(Sequence[Tuple[bytes, bytes]]):
@@ -133,24 +157,32 @@ HeaderTypes = Union[
 
 
 @overload
-def normalize_and_validate(headers: Headers, _parsed: Literal[True]) -> Headers:
-    ...
-
-
-@overload
-def normalize_and_validate(headers: HeaderTypes, _parsed: Literal[False]) -> Headers:
+def normalize_and_validate(
+    headers: Headers, _parsed: Literal[True], strict: bool = ...
+) -> Headers:
     ...
 
 
 @overload
 def normalize_and_validate(
-    headers: Union[Headers, HeaderTypes], _parsed: bool = False
+    headers: HeaderTypes, _parsed: Literal[False], strict: bool = ...
+) -> Headers:
+    ...
+
+
+@overload
+def normalize_and_validate(
+    headers: Union[Headers, HeaderTypes],
+    _parsed: bool = False,
+    strict: bool = False,
 ) -> Headers:
     ...
 
 
 def normalize_and_validate(
-    headers: Union[Headers, HeaderTypes], _parsed: bool = False
+    headers: Union[Headers, HeaderTypes],
+    _parsed: bool = False,
+    strict: bool = False,
 ) -> Headers:
     new_headers = []
     seen_content_length = None
@@ -170,18 +202,40 @@ def normalize_and_validate(
         raw_name = name
         name = name.lower()
         if name == b"content-length":
-            lengths = {length.strip() for length in value.split(b",")}
-            if len(lengths) != 1:
-                raise LocalProtocolError("conflicting Content-Length headers")
-            value = lengths.pop()
-            validate(_content_length_re, value, "bad Content-Length")
-            if len(value) > CONTENT_LENGTH_MAX_DIGITS:
-                raise LocalProtocolError("bad Content-Length")
-            if seen_content_length is None:
+            if strict:
+                # RFC 9112 section 6.3: a message framing header must be
+                # unambiguous. The length has exactly one representation --
+                # bare decimal digits, no whitespace, signs, comma lists or
+                # leading zeros games -- and there must be exactly one of
+                # these fields. We deliberately don't reuse the permissive
+                # branch below, so that every oddity ends up at this one
+                # rule instead of getting a bespoke interpretation.
+                if seen_content_length is not None:
+                    raise LocalProtocolError(
+                        "multiple Content-Length headers are not allowed "
+                        "with strict request boundaries"
+                    )
+                # Values reaching this point have already had no whitespace
+                # around them, so this is one bare run of decimal digits.
+                if not _content_length_re.fullmatch(value):
+                    raise LocalProtocolError("bad Content-Length")
+                if len(value) > CONTENT_LENGTH_MAX_DIGITS:
+                    raise LocalProtocolError("bad Content-Length")
                 seen_content_length = value
                 new_headers.append((raw_name, name, value))
-            elif seen_content_length != value:
-                raise LocalProtocolError("conflicting Content-Length headers")
+            else:
+                lengths = {length.strip() for length in value.split(b",")}
+                if len(lengths) != 1:
+                    raise LocalProtocolError("conflicting Content-Length headers")
+                value = lengths.pop()
+                validate(_content_length_re, value, "bad Content-Length")
+                if len(value) > CONTENT_LENGTH_MAX_DIGITS:
+                    raise LocalProtocolError("bad Content-Length")
+                if seen_content_length is None:
+                    seen_content_length = value
+                    new_headers.append((raw_name, name, value))
+                elif seen_content_length != value:
+                    raise LocalProtocolError("conflicting Content-Length headers")
         elif name == b"transfer-encoding":
             # "A server that receives a request message with a transfer coding
             # it does not understand SHOULD respond with 501 (Not
@@ -280,3 +334,43 @@ def has_expect_100_continue(request: "Request") -> bool:
         return False
     expect = get_comma_header(request.headers, b"expect")
     return b"100-continue" in expect
+
+
+def validate_trailer_fields(headers: Headers) -> None:
+    """Reject fields that are forbidden in chunked trailers.
+
+    RFC 9112 section 7.1.2 names framing/routing fields (Host,
+    Content-Length, Transfer-Encoding) explicitly: a recipient MUST either
+    reject a message that places them in the trailer or remove them before
+    forwarding, because processing them as trailer fields could let a
+    smuggling payload hide framing information from security filters that
+    only look at the header section.
+    """
+    for name, _ in headers:
+        if name in _TRAILER_FORBIDDEN_FIELDS:
+            raise LocalProtocolError(
+                f"forbidden header field {name.decode('ascii')!r} in chunked trailer"
+            )
+
+
+def validate_strict_request_header_lines(lines: Iterable[bytes]) -> None:
+    """Check raw request header lines against the strict wire rules.
+
+    Header values normally lose their surrounding optional whitespace during
+    generic parsing, which would make ``Content-Length: 5 `` and
+    ``Content-Length:5`` indistinguishable. Strict mode checks the untouched
+    line instead, so any whitespace, sign or other decoration attached to a
+    framing length is rejected on the wire rather than normalized away.
+    """
+    for line in lines:
+        colon = bytes(line).find(b":")
+        if colon == -1:
+            # The generic header grammar rejects this shortly afterwards;
+            # nothing framing-specific to check here.
+            continue
+        if bytes(line[:colon]).lower() == b"content-length":
+            validate(
+                _strict_content_length_line_re,
+                bytes(line),
+                "bad Content-Length",
+            )

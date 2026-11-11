@@ -74,3 +74,9 @@ sure whether anyone actually needs it. Unfortunately a few major
 implementations that I spot-checked (node.js, go) do still seem to
 support reading such headers (but not generating them), so it might or
 might not be obsolete in practice -- it's hard to know.
+
+The lenient behavior above (accepting line folding, parsing and
+discarding chunk extensions, and letting Transfer-Encoding override
+Content-Length) remains the default. Servers that would rather reject
+these ambiguities -- in particular proxies and gateways worried about
+request smuggling -- can opt into :doc:`strict-request-boundaries`.
