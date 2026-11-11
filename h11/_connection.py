@@ -23,7 +23,7 @@ from ._events import (
     Response,
 )
 from ._headers import get_comma_header, has_expect_100_continue, set_comma_header
-from ._readers import READERS, ReadersType
+from ._readers import READERS, ReadersType, maybe_read_from_IDLE_client_strict
 from ._receivebuffer import ReceiveBuffer
 from ._state import (
     _SWITCH_CONNECT,
@@ -32,6 +32,7 @@ from ._state import (
     ConnectionState,
     DONE,
     ERROR,
+    IDLE,
     MIGHT_SWITCH_PROTOCOL,
     SEND_BODY,
     SERVER,
@@ -162,14 +163,27 @@ class Connection:
             exceeded, then :meth:`next_event` will raise
             :exc:`RemoteProtocolError`.
 
+        strict_request_boundaries (bool):
+            If True, apply strict framing checks to incoming requests. This
+            rejects requests that could have ambiguous message boundaries,
+            including requests that mix ``Transfer-Encoding`` and
+            ``Content-Length``, duplicate ``Content-Length`` fields, obsolete
+            line folding, malformed chunk extensions, and forbidden trailer
+            fields. The default is False, which preserves h11's historical
+            lenient behavior. This option only affects requests (that is,
+            messages received by a :data:`SERVER` connection); responses are
+            parsed as before.
+
     """
 
     def __init__(
         self,
         our_role: Type[Sentinel],
         max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
+        strict_request_boundaries: bool = False,
     ) -> None:
         self._max_incomplete_event_size = max_incomplete_event_size
+        self._strict_request_boundaries = strict_request_boundaries
         # State and role tracking
         if our_role not in (CLIENT, SERVER):
             raise ValueError(f"expected CLIENT or SERVER, not {our_role!r}")
@@ -331,10 +345,31 @@ class Connection:
             framing_type, args = _body_framing(
                 cast(bytes, self._request_method), cast(Union[Request, Response], event)
             )
+            if (
+                self._strict_request_boundaries
+                and io_dict is READERS
+                and role is CLIENT
+                and type(event) is Request
+                and framing_type == "chunked"
+            ):
+                # Strict chunk/trailer validation applies to request bodies
+                # only; response bodies are parsed with the compatible reader.
+                factory = cast(
+                    Callable[..., Any],
+                    io_dict[SEND_BODY][framing_type],  # type: ignore[index]
+                )
+                return cast(Callable[..., Any], factory(*args, strict=True))
             return io_dict[SEND_BODY][framing_type](*args)  # type: ignore[index]
         else:
             # General case: the io_dict just has the appropriate reader/writer
             # for this state
+            if (
+                self._strict_request_boundaries
+                and io_dict is READERS
+                and role is CLIENT
+                and state is IDLE
+            ):
+                return maybe_read_from_IDLE_client_strict
             return io_dict.get((role, state))  # type: ignore[return-value]
 
     # This must be called after any action that might have caused

@@ -17,10 +17,28 @@
 # - or, for body readers, a dict of per-framing reader factories
 
 import re
-from typing import Any, Callable, Dict, Iterable, NoReturn, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    NoReturn,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
-from ._abnf import chunk_header, header_field, request_line, status_line
+from ._abnf import (
+    chunk_header,
+    chunk_header_strict,
+    header_field,
+    request_line,
+    status_line,
+)
 from ._events import Data, EndOfMessage, InformationalResponse, Request, Response
+from ._headers import _validate_content_length
 from ._receivebuffer import ReceiveBuffer
 from ._state import (
     CLIENT,
@@ -37,15 +55,31 @@ from ._util import LocalProtocolError, RemoteProtocolError, Sentinel, validate
 __all__ = ["READERS"]
 
 header_field_re = re.compile(header_field.encode("ascii"))
+chunk_header_strict_re = re.compile(chunk_header_strict.encode("ascii"))
 obs_fold_re = re.compile(rb"[ \t]+")
 
+# Fields that are forbidden in a trailer section. Processing these as if they
+# had appeared in the header section can change how the *next* message on a
+# keep-alive connection is framed, which is a classic request-smuggling trick.
+_FORBIDDEN_TRAILER_FIELDS = frozenset(
+    {b"host", b"content-length", b"transfer-encoding"}
+)
 
-def _obsolete_line_fold(lines: Iterable[bytes]) -> Iterable[bytes]:
+
+def _obsolete_line_fold(
+    lines: Iterable[bytes], *, strict: bool = False
+) -> Iterable[bytes]:
     it = iter(lines)
     last: Optional[bytes] = None
     for line in it:
         match = obs_fold_re.match(line)
         if match:
+            if strict:
+                raise LocalProtocolError(
+                    "obsolete line folding is not allowed in strict mode: {!r}".format(
+                        bytes(line)
+                    )
+                )
             if last is None:
                 raise LocalProtocolError("continuation line at start of headers")
             if not isinstance(last, bytearray):
@@ -63,16 +97,65 @@ def _obsolete_line_fold(lines: Iterable[bytes]) -> Iterable[bytes]:
 
 def _decode_header_lines(
     lines: Iterable[bytes],
+    *,
+    strict: bool = False,
 ) -> Iterable[Tuple[bytes, bytes]]:
-    for line in _obsolete_line_fold(lines):
+    for line in _obsolete_line_fold(lines, strict=strict):
         matches = validate(header_field_re, line, "illegal header line: {!r}", line)
         yield (matches["field_name"], matches["field_value"])
+
+
+def _validate_strict_request_headers(headers: Iterable[Tuple[bytes, bytes]]) -> None:
+    """Apply request-framing checks that are too strict for the default mode.
+
+    The goal is to reject any request whose boundaries different HTTP
+    implementations could interpret differently (and thus smuggle a second
+    request through a shared connection).
+    """
+    content_length_values: List[bytes] = []
+    saw_transfer_encoding = False
+    for name, value in headers:
+        lower_name = name.lower()
+        if lower_name == b"content-length":
+            content_length_values.append(value)
+            # A single field carrying a comma-separated list is just another
+            # way of declaring multiple lengths. Reject it instead of picking
+            # one of them.
+            if b"," in value:
+                raise LocalProtocolError(
+                    "multiple Content-Length values in request: {!r}".format(value)
+                )
+            _validate_content_length(value)
+        elif lower_name == b"transfer-encoding":
+            saw_transfer_encoding = True
+    if len(content_length_values) > 1:
+        raise LocalProtocolError(
+            "duplicate Content-Length headers in strict request: {!r}".format(
+                content_length_values
+            )
+        )
+    if content_length_values and saw_transfer_encoding:
+        raise LocalProtocolError(
+            "strict request mixes Transfer-Encoding and Content-Length: {!r}".format(
+                content_length_values
+            )
+        )
+
+
+def _validate_strict_trailer_headers(headers: Iterable[Tuple[bytes, bytes]]) -> None:
+    for name, value in headers:
+        if name.lower() in _FORBIDDEN_TRAILER_FIELDS:
+            raise LocalProtocolError(
+                "forbidden trailer field {!r}: {!r}".format(name, value)
+            )
 
 
 request_line_re = re.compile(request_line.encode("ascii"))
 
 
-def maybe_read_from_IDLE_client(buf: ReceiveBuffer) -> Optional[Request]:
+def maybe_read_from_IDLE_client(
+    buf: ReceiveBuffer, *, strict: bool = False
+) -> Optional[Request]:
     lines = buf.maybe_extract_lines()
     if lines is None:
         if buf.is_next_line_obviously_invalid_request_line():
@@ -83,9 +166,14 @@ def maybe_read_from_IDLE_client(buf: ReceiveBuffer) -> Optional[Request]:
     matches = validate(
         request_line_re, lines[0], "illegal request line: {!r}", lines[0]
     )
-    return Request(
-        headers=list(_decode_header_lines(lines[1:])), _parsed=True, **matches
-    )
+    headers = list(_decode_header_lines(lines[1:], strict=strict))
+    if strict:
+        _validate_strict_request_headers(headers)
+    return Request(headers=headers, _parsed=True, **matches)
+
+
+def maybe_read_from_IDLE_client_strict(buf: ReceiveBuffer) -> Optional[Request]:
+    return maybe_read_from_IDLE_client(buf, strict=True)
 
 
 status_line_re = re.compile(status_line.encode("ascii"))
@@ -146,7 +234,8 @@ chunk_header_re = re.compile(chunk_header.encode("ascii"))
 
 
 class ChunkedReader:
-    def __init__(self) -> None:
+    def __init__(self, *, strict: bool = False) -> None:
+        self._strict = strict
         self._bytes_in_chunk = 0
         # After reading a chunk, we have to throw away the trailing \r\n.
         # This tracks the bytes that we need to match and throw away.
@@ -158,7 +247,10 @@ class ChunkedReader:
             lines = buf.maybe_extract_lines()
             if lines is None:
                 return None
-            return EndOfMessage(headers=list(_decode_header_lines(lines)))
+            headers = list(_decode_header_lines(lines, strict=self._strict))
+            if self._strict:
+                _validate_strict_trailer_headers(headers)
+            return EndOfMessage(headers=headers)
         if self._bytes_to_discard:
             data = buf.maybe_extract_at_most(len(self._bytes_to_discard))
             if data is None:
@@ -177,12 +269,20 @@ class ChunkedReader:
             chunk_header = buf.maybe_extract_next_line()
             if chunk_header is None:
                 return None
-            matches = validate(
-                chunk_header_re,
-                chunk_header,
-                "illegal chunk header: {!r}",
-                chunk_header,
-            )
+            if self._strict:
+                matches = validate(
+                    chunk_header_strict_re,
+                    chunk_header,
+                    "malformed chunk header in strict request: {!r}",
+                    chunk_header,
+                )
+            else:
+                matches = validate(
+                    chunk_header_re,
+                    chunk_header,
+                    "illegal chunk header: {!r}",
+                    chunk_header,
+                )
             # XX FIXME: we discard chunk extensions. Does anyone care?
             self._bytes_in_chunk = int(matches["chunk_size"], base=16)
             if self._bytes_in_chunk == 0:

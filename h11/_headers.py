@@ -74,6 +74,21 @@ _field_name_re = re.compile(field_name.encode("ascii"))
 _field_value_re = re.compile(field_value.encode("ascii"))
 
 
+def _validate_content_length(value: bytes) -> None:
+    """Validate one decimal Content-Length value.
+
+    This is the single place where a length number is interpreted. It accepts
+    only a non-empty run of ASCII digits: leading '+'/'-' signs, internal or
+    leading/trailing whitespace, and any non-decimal syntax are rejected, and
+    so are values longer than CONTENT_LENGTH_MAX_DIGITS. Keeping this in one
+    function avoids different call sites disagreeing about what a "length" is,
+    which is exactly the sort of disagreement that enables request smuggling.
+    """
+    validate(_content_length_re, value, "bad Content-Length")
+    if len(value) > CONTENT_LENGTH_MAX_DIGITS:
+        raise LocalProtocolError("bad Content-Length")
+
+
 class Headers(Sequence[Tuple[bytes, bytes]]):
     """
     A list-like interface that allows iterating over headers as byte-pairs
@@ -174,9 +189,7 @@ def normalize_and_validate(
             if len(lengths) != 1:
                 raise LocalProtocolError("conflicting Content-Length headers")
             value = lengths.pop()
-            validate(_content_length_re, value, "bad Content-Length")
-            if len(value) > CONTENT_LENGTH_MAX_DIGITS:
-                raise LocalProtocolError("bad Content-Length")
+            _validate_content_length(value)
             if seen_content_length is None:
                 seen_content_length = value
                 new_headers.append((raw_name, name, value))

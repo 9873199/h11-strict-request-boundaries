@@ -130,3 +130,28 @@ chunk_header = (
     )  # Even though the specification does not allow for extra whitespaces,
     # we are lenient with trailing whitespaces because some servers on the wild use it.
 )
+
+# Strict chunk-header grammar, used when the caller explicitly opts in to
+# strict request-boundary checking. Unlike the lenient pattern above this:
+#
+# - validates chunk extensions instead of accepting arbitrary `;...` junk,
+# - does not accept the non-standard trailing whitespace, and
+# - does not accept a bare `;` without an extension name.
+#
+#   chunk-ext      = *( ";" chunk-ext-name [ "=" chunk-ext-val ] )
+#   chunk-ext-name = token
+#   chunk-ext-val  = token / quoted-string
+#   quoted-string  = DQUOTE *( qdtext / quoted-pair ) DQUOTE
+#   qdtext         = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
+#   quoted-pair    = "\" ( HTAB / SP / VCHAR / obs-text )
+qdtext = r"[\t \x21\x23-\x5b\x5d-\x7e\x80-\xff]"
+quoted_pair = r"\\(?:[\t \x21-\x7e\x80-\xff])"
+quoted_string = r'"(?:{qdtext}|{quoted_pair})*"'.format(**globals())
+chunk_ext_name = token
+chunk_ext_val = r"(?:{token}|{quoted_string})".format(**globals())
+chunk_ext_strict = r"(?:;{chunk_ext_name}(?:={chunk_ext_val})?)*".format(**globals())
+chunk_header_strict = (
+    r"(?P<chunk_size>{chunk_size})"
+    r"(?P<chunk_ext>{chunk_ext_strict})"
+    r"\r\n"
+).format(**globals())
